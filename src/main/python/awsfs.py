@@ -132,10 +132,12 @@ class DynamoTable(VDir):
         for page in self.db.get_paginator('scan').paginate(
                 TableName=self.table,
                 AttributesToGet=[key_col]):
-            result += [
-                (format_dynamo_attr(item[key_col]),
-                 StaticFile("nothing".encode()))
-                for item in page['Items']]
+            for item in page['Items']:
+                key_attr = item[key_col]
+                filename = format_dynamo_attr(key_attr)
+                value = DynamoRow(self.region, self.table,
+                                  key_col, key_attr)
+                result.append((filename, value))
         return result
 
     def load_key_col(self):
@@ -144,6 +146,30 @@ class DynamoTable(VDir):
             if key['KeyType'] == 'HASH':
                 return key['AttributeName']
         raise Exception('Table has no hash key!')
+
+
+class DynamoRow(VFile):
+    def __init__(self, region, table, key_col, key_attr):
+        self.db = boto3.client('dynamodb', region_name=region)
+        self.table = table
+        self.key_obj = {key_col: key_attr}
+
+        def load(_):
+            return self.load_contents()
+        self.cache = LoadingCache(load, 60)
+
+    def read(self):
+        return self.cache.get('contents')
+
+    def write(self):
+        pass
+
+    def get_size(self):
+        return len(self.read())
+
+    def load_contents(self):
+        response = self.db.get_item(TableName=self.table, Key=self.key_obj)
+        return str(response['Item']).encode()
 
 
 class Ec2Dir(VDir):
