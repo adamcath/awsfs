@@ -6,6 +6,7 @@ from errno import *
 from stat import S_IFDIR, S_IFREG
 from sys import argv, exit
 from time import time
+import json
 
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 
@@ -69,12 +70,16 @@ class RootDir(VDir):
         return self.children
 
 
-def format_dynamo_attr(attribute):
+def simplify_dynamo_attr(attribute):
     if 'S' in attribute:
         return attribute['S']
     if 'N' in attribute:
         return attribute['N']
     return str(attribute)
+
+
+def simplify_dynamo_item(attr_dict):
+    return {k: simplify_dynamo_attr(v) for k, v in attr_dict.items()}
 
 
 class DynamoDir(VDir):
@@ -119,7 +124,6 @@ class DynamoTable(VDir):
         self.db = boto3.client('dynamodb', region_name=self.region)
 
         def load(_):
-            print("loading table rows %s..." % table)
             return self.load_rows()
         self.cache = LoadingCache(load, 60)
 
@@ -134,7 +138,7 @@ class DynamoTable(VDir):
                 AttributesToGet=[key_col]):
             for item in page['Items']:
                 key_attr = item[key_col]
-                filename = format_dynamo_attr(key_attr)
+                filename = simplify_dynamo_attr(key_attr)
                 value = DynamoRow(self.region, self.table,
                                   key_col, key_attr)
                 result.append((filename, value))
@@ -168,8 +172,9 @@ class DynamoRow(VFile):
         return len(self.read())
 
     def load_contents(self):
-        response = self.db.get_item(TableName=self.table, Key=self.key_obj)
-        return str(response['Item']).encode()
+        item = self.db.get_item(TableName=self.table, Key=self.key_obj)['Item']
+        return (json.dumps(simplify_dynamo_item(item),
+                           sort_keys=True, indent=4) + '\n').encode()
 
 
 class Ec2Dir(VDir):
