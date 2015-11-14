@@ -69,6 +69,14 @@ class RootDir(VDir):
         return self.children
 
 
+def format_dynamo_attr(attribute):
+    if 'S' in attribute:
+        return attribute['S']
+    if 'N' in attribute:
+        return attribute['N']
+    return str(attribute)
+
+
 class DynamoDir(VDir):
     def __init__(self):
         self.children = None
@@ -94,11 +102,10 @@ class DynamoRegionDir(VDir):
             for page in db.get_paginator('list_tables').paginate():
                 result += [
                     (table_name, DynamoTable(self.region, table_name))
-                    for table_name
-                    in page['TableNames']]
+                    for table_name in page['TableNames']]
             return result
 
-        self.cache = LoadingCache(load, 5)
+        self.cache = LoadingCache(load, 60)
 
     def get_children(self):
         children = self.cache.get('children')
@@ -106,11 +113,37 @@ class DynamoRegionDir(VDir):
 
 
 class DynamoTable(VDir):
-    def __init__(self, region, table_name):
-        pass
+    def __init__(self, region, table):
+        self.region = region
+        self.table = table
+        self.db = boto3.client('dynamodb', region_name=self.region)
+
+        def load(_):
+            print("loading table rows %s..." % table)
+            return self.load_rows()
+        self.cache = LoadingCache(load, 60)
 
     def get_children(self):
-        return [("some item", StaticFile("its value".encode()))]
+        return self.cache.get('rows')
+
+    def load_rows(self):
+        key_col = self.load_key_col()
+        result = []
+        for page in self.db.get_paginator('scan').paginate(
+                TableName=self.table,
+                AttributesToGet=[key_col]):
+            result += [
+                (format_dynamo_attr(item[key_col]),
+                 StaticFile("nothing".encode()))
+                for item in page['Items']]
+        return result
+
+    def load_key_col(self):
+        for key in (self.db.describe_table(TableName=self.table)
+                    ['Table']['KeySchema']):
+            if key['KeyType'] == 'HASH':
+                return key['AttributeName']
+        raise Exception('Table has no hash key!')
 
 
 class Ec2Dir(VDir):
