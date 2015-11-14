@@ -5,10 +5,9 @@ set -o pipefail
 set -o nounset
 
 here="$(dirname "$0")"
-cd "$here/../../../"
-proj="$(pwd)"
+cd "$here"
 
-mnt="$proj/build/test-tmp/mnt"
+mnt="$(mktemp -d)"
 mkdir -p "$mnt"
 
 # Start fuse in background and kill on exit
