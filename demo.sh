@@ -11,6 +11,7 @@ mnt="$(mktemp -d)"
 mkdir -p "$mnt"
 
 # Start fuse in background and kill on exit
+export PYTHON_PATH=src/main/python
 python src/main/python/awsfs.py "$mnt" &
 fuse_pid="$!"
 function cleanup {
