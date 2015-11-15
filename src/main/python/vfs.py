@@ -17,7 +17,7 @@ class VNode:
     def read(self):
         raise Exception("Abstract!")
 
-    def write(self, bytes):
+    def write(self, bytebuf):
         raise Exception("Abstract!")
 
     def get_size(self):
@@ -39,6 +39,7 @@ class VFile(VNode):
 
 class StaticFile(VFile):
     def __init__(self, contents):
+        VFile.__init__(self)
         self.contents = contents
 
     def read(self):

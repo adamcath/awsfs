@@ -15,6 +15,7 @@ from dynamo import DynamoDir
 
 class RootDir(VDir):
     def __init__(self):
+        VDir.__init__(self)
         self.children = [("dynamodb", DynamoDir()), ("ec2", Ec2Dir())]
 
     def get_children(self):
@@ -24,10 +25,6 @@ class RootDir(VDir):
 class Ec2Dir(VDir):
     def get_children(self):
         return [("some node", StaticFile("its value".encode()))]
-
-
-if not hasattr(__builtins__, 'bytes'):
-    bytes = str
 
 
 class Awsfs(LoggingMixIn, Operations):
@@ -58,18 +55,17 @@ class Awsfs(LoggingMixIn, Operations):
     def chown(self, path, uid, gid):
         pass
 
-    def create(self, path, mode):
+    def create(self, path, mode, fi=None):
         return ENOENT
 
     def getattr(self, path, fh=None):
         node = self.resolve(path)
         if node.is_dir():
             return dict(st_mode=(S_IFDIR | 0755), st_ctime=time(),
-                               st_mtime=time(), st_atime=time(), st_nlink=2)
+                        st_mtime=time(), st_atime=time(), st_nlink=2)
         else:
-            return dict(st_mode=(S_IFREG), st_nlink=1,
-                                st_size=node.get_size(), st_ctime=time(), st_mtime=time(),
-                                st_atime=time())
+            return dict(st_mode=S_IFREG, st_nlink=1, st_size=node.get_size(),
+                        st_ctime=time(), st_mtime=time(), st_atime=time())
 
     def getxattr(self, path, name, position=0):
         return ''

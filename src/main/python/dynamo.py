@@ -20,6 +20,7 @@ def simplify_dynamo_item(attr_dict):
 
 class DynamoDir(VDir):
     def __init__(self):
+        VDir.__init__(self)
         self.children = None
 
     def get_children(self):
@@ -35,6 +36,7 @@ class DynamoDir(VDir):
 
 class DynamoRegionDir(VDir):
     def __init__(self, region):
+        VDir.__init__(self)
         self.region = region
 
         def load(_):
@@ -55,6 +57,7 @@ class DynamoRegionDir(VDir):
 
 class DynamoTable(VDir):
     def __init__(self, region, table):
+        VDir.__init__(self)
         self.region = region
         self.table = table
         self.db = boto3.client('dynamodb', region_name=self.region)
@@ -90,6 +93,7 @@ class DynamoTable(VDir):
 
 class DynamoRow(VFile):
     def __init__(self, region, table, key_col, key_attr):
+        VFile.__init__(self)
         self.db = boto3.client('dynamodb', region_name=region)
         self.table = table
         self.key_obj = {key_col: key_attr}
@@ -101,7 +105,7 @@ class DynamoRow(VFile):
     def read(self):
         return self.cache.get('contents')
 
-    def write(self):
+    def write(self, bytebuf):
         pass
 
     def get_size(self):
