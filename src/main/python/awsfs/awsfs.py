@@ -1,13 +1,8 @@
-#!/usr/bin/env python
-
-import logging
-
 from errno import *
 from stat import S_IFDIR, S_IFREG
-from sys import argv, exit
 from time import time
 
-from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
+from fuse import FuseOSError, Operations, LoggingMixIn
 
 from vfs import *
 from dynamo import DynamoDir
@@ -17,13 +12,13 @@ from ec2 import Ec2Dir
 class RootDir(VDir):
     def __init__(self):
         VDir.__init__(self)
-        self.children = [("dynamodb", DynamoDir()), ("ec2", Ec2Dir())]
+        self.children = [("dynamo", DynamoDir()), ("ec2", Ec2Dir())]
 
     def get_children(self):
         return self.children
 
 
-class Awsfs(LoggingMixIn, Operations):
+class AwsOps(LoggingMixIn, Operations):
     def __init__(self):
         self.root = RootDir()
 
@@ -127,12 +122,3 @@ class Awsfs(LoggingMixIn, Operations):
 
     def write(self, path, data, offset, fh):
         return ENOENT
-
-
-if __name__ == '__main__':
-    if len(argv) != 2:
-        print('usage: %s <mountpoint>' % argv[0])
-        exit(1)
-
-    logging.getLogger().setLevel(logging.DEBUG)
-    fuse = FUSE(Awsfs(), argv[1], foreground=True)
