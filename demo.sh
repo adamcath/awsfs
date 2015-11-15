@@ -25,8 +25,10 @@ sleep 1
 
 function step {
     echo "> $1"
+    sleep 1
     eval "$1"
     echo
+    sleep 2
 }
 
 step 'ls'
@@ -37,18 +39,21 @@ echo "#####################################################"
 step 'cd dynamo'
 step 'ls'
 step 'cd us-west-2'
-step 'ls | head -n10 || True'  # TODO why?
-step 'cd "$(ls | head -n 1)"'
-step 'ls | head -n10 || True'  # TODO why?
-step 'cat "$(ls | head -n 1)"'
+step 'ls | head -n 10 || True'  # TODO why?
+first="$(ls | head -n 1 || True)"
+step "cd $first"
+step 'ls | head -n 10 || True'
+first="$(ls | head -n 1 || True)"
+step "cat $first"
 step 'cd ../../../'
 
 echo "#####################################################"
 echo "# EC2"
 echo "#####################################################"
 step 'cd ec2/us-west-2/instances'
-step 'ls | head -n 10 || True'  # TODO why?
-step 'cd "$(ls | head -n 1)"'
+step 'ls | head -n 10 || True'
+first="$(ls | head -n 1 || True)"
+step "cd $first"
 step 'cat info | head -n 20'
 step 'cd ../../../../'
 
