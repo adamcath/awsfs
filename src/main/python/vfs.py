@@ -37,16 +37,24 @@ class VFile(VNode):
         return False
 
 
-class StaticFile(VFile):
-    def __init__(self, contents):
+class LazyReadOnlyFile(VFile):
+    def __init__(self, get_contents_func):
         VFile.__init__(self)
-        self.contents = contents
+        self.get_contents_func = get_contents_func
 
     def read(self):
-        return self.contents
+        return self.get_contents_func()
 
     def write(self, _):
         pass
 
     def get_size(self):
-        return len(self.contents)
+        # TODO This is crappy for perf. Does it really need to be accurate?
+        return len(self.read())
+
+
+class StaticFile(LazyReadOnlyFile):
+    def __init__(self, contents):
+        def load():
+            return contents
+        LazyReadOnlyFile.__init__(self, load)

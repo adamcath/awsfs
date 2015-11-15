@@ -1,9 +1,8 @@
-import json
-
 import boto3
 
 from vfs import *
 from cache import LoadingCache
+from format import to_json
 
 
 def simplify_dynamo_attr(attribute):
@@ -63,13 +62,13 @@ class DynamoTable(VDir):
         self.db = boto3.client('dynamodb', region_name=self.region)
 
         def load(_):
-            return self.load_rows()
+            return self.miss()
         self.cache = LoadingCache(load, 60)
 
     def get_children(self):
         return self.cache.get('rows')
 
-    def load_rows(self):
+    def miss(self):
         key_col = self.load_key_col()
         result = []
         for page in self.db.get_paginator('scan').paginate(
@@ -91,27 +90,17 @@ class DynamoTable(VDir):
         raise Exception('Table has no hash key!')
 
 
-class DynamoRow(VFile):
+class DynamoRow(LazyReadOnlyFile):
     def __init__(self, region, table, key_col, key_attr):
-        VFile.__init__(self)
         self.db = boto3.client('dynamodb', region_name=region)
         self.table = table
         self.key_obj = {key_col: key_attr}
+        self.cache = LoadingCache(lambda _: self.miss(), 60)
 
-        def load(_):
-            return self.load_contents()
-        self.cache = LoadingCache(load, 60)
+        def load():
+            return self.cache.get('contents')
+        LazyReadOnlyFile.__init__(self, load)
 
-    def read(self):
-        return self.cache.get('contents')
-
-    def write(self, bytebuf):
-        pass
-
-    def get_size(self):
-        return len(self.read())
-
-    def load_contents(self):
+    def miss(self):
         item = self.db.get_item(TableName=self.table, Key=self.key_obj)['Item']
-        return (json.dumps(simplify_dynamo_item(item),
-                           sort_keys=True, indent=4) + '\n').encode()
+        return to_json(simplify_dynamo_item(item)).encode()

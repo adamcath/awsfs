@@ -11,6 +11,7 @@ from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 
 from vfs import *
 from dynamo import DynamoDir
+from ec2 import Ec2Dir
 
 
 class RootDir(VDir):
@@ -20,11 +21,6 @@ class RootDir(VDir):
 
     def get_children(self):
         return self.children
-
-
-class Ec2Dir(VDir):
-    def get_children(self):
-        return [("some node", StaticFile("its value".encode()))]
 
 
 class Awsfs(LoggingMixIn, Operations):
