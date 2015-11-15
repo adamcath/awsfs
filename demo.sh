@@ -25,10 +25,8 @@ sleep 1
 
 function step {
     echo "> $1"
-    sleep 1
     eval "$1"
     echo
-    sleep 2
 }
 
 step 'ls'
@@ -66,7 +64,13 @@ first="$(ls | head -n 1 || True)"
 step "cd $first"
 step 'cat info | head -n 20'
 step 'cat status | head -n 20'
-step 'cd ../../../'
+step 'cd instances'
+step 'ls | head -n 10 || True'
+first="$(ls | head -n 1 || True)"
+step "cd $first"
+step 'pwd'
+step 'ls'
+step 'cd ../../../../'
 
 echo "#####################################################"
 echo "# Unmounting awsfs"

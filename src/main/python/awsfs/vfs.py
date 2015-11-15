@@ -1,3 +1,5 @@
+from stat import S_IFDIR, S_IFREG, S_IFLNK
+
 from cache import LoadingCache
 
 
@@ -6,6 +8,9 @@ class VNode:
         pass
 
     def is_dir(self):
+        raise Exception("Abstract!")
+
+    def get_type(self):
         raise Exception("Abstract!")
 
     def get_children(self):
@@ -31,6 +36,9 @@ class VDir(VNode):
     def is_dir(self):
         return True
 
+    def get_type(self):
+        return S_IFDIR
+
     def get_size(self):
         return 0
 
@@ -38,6 +46,24 @@ class VDir(VNode):
 class VFile(VNode):
     def is_dir(self):
         return False
+
+    def get_type(self):
+        return S_IFREG
+
+
+class VLink(VFile):
+    def __init__(self, dest):
+        VFile.__init__(self)
+        self.dest = dest
+
+    def get_type(self):
+        return S_IFLNK
+
+    def get_size(self):
+        return len(self.dest.encode())
+
+    def read(self):
+        return self.dest.encode()
 
 
 class LazyReadOnlyDir(VDir):

@@ -60,7 +60,8 @@ class AwsOps(LoggingMixIn, Operations):
             return dict(st_mode=(S_IFDIR | 0755), st_ctime=time(),
                         st_mtime=time(), st_atime=time(), st_nlink=2)
         else:
-            return dict(st_mode=S_IFREG, st_nlink=1, st_size=node.get_size(),
+            return dict(st_mode=node.get_type(), st_nlink=1,
+                        st_size=node.get_size(),
                         st_ctime=time(), st_mtime=time(), st_atime=time())
 
     def getxattr(self, path, name, position=0):
@@ -96,7 +97,10 @@ class AwsOps(LoggingMixIn, Operations):
         return [name for (name, value) in node.get_children()]
 
     def readlink(self, path):
-        raise FuseOSError(EPERM)
+        node = self.resolve(path)
+        if node.get_type() != S_IFLNK:
+            raise FuseOSError(EINVAL)
+        return node.read()
 
     def removexattr(self, path, name):
         raise FuseOSError(EPERM)

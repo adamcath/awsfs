@@ -46,7 +46,8 @@ def elb_dir(region, elb_id, elb_obj):
     def load():
         return [
             ("info", StaticFile(to_json(elb_obj).encode())),
-            ("status", elb_instance_status_file(region, elb_id))
+            ("status", elb_instance_status_file(region, elb_id)),
+            ("instances", elb_instances_dir(region, elb_obj))
         ]
 
     return CachedLazyReadOnlyDir(load, -1)
@@ -61,3 +62,16 @@ def elb_instance_status_file(region, elb_id):
         return to_json(statuses).encode()
 
     return LazyReadOnlyFile(load)
+
+
+def elb_instances_dir(region, elb_obj):
+
+    def load():
+        result = []
+        for instance in elb_obj['Instances']:
+            instance_id = instance['InstanceId']
+            path = '../../../../ec2/%s/instances/%s' % (region, instance_id)
+            result.append((instance['InstanceId'], VLink(path)))
+        return result
+
+    return CachedLazyReadOnlyDir(load, -1)
