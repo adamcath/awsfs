@@ -41,13 +41,13 @@ class AwsOps(LoggingMixIn, Operations):
     # The operations
 
     def chmod(self, path, mode):
-        return 0
+        raise FuseOSError(EPERM)
 
     def chown(self, path, uid, gid):
-        pass
+        raise FuseOSError(EPERM)
 
     def create(self, path, mode, fi=None):
-        return ENOENT
+        raise FuseOSError(EPERM)
 
     def getattr(self, path, fh=None):
         node = self.resolve(path)
@@ -65,7 +65,7 @@ class AwsOps(LoggingMixIn, Operations):
         return []
 
     def mkdir(self, path, mode):
-        return ENOENT
+        raise FuseOSError(EPERM)
 
     def open(self, path, flags):
         node = self.resolve(path)
@@ -91,34 +91,34 @@ class AwsOps(LoggingMixIn, Operations):
         return [name for (name, value) in node.get_children()]
 
     def readlink(self, path):
-        return ENOENT
+        raise FuseOSError(EPERM)
 
     def removexattr(self, path, name):
-        return ENOENT
+        raise FuseOSError(EPERM)
 
     def rename(self, old, new):
-        return ENOENT
+        raise FuseOSError(EPERM)
 
     def rmdir(self, path):
-        return ENOENT
+        raise FuseOSError(EPERM)
 
     def setxattr(self, path, name, value, options, position=0):
-        return ENOENT
+        raise FuseOSError(EPERM)
 
     def statfs(self, path):
         return dict(f_bsize=512, f_blocks=4096, f_bavail=2048)
 
     def symlink(self, target, source):
-        return ENOENT
+        raise FuseOSError(EPERM)
 
     def truncate(self, path, length, fh=None):
-        return ENOENT
+        raise FuseOSError(EPERM)
 
     def unlink(self, path):
-        return ENOENT
+        raise FuseOSError(EPERM)
 
     def utimens(self, path, times=None):
-        return ENOENT
+        raise FuseOSError(EPERM)
 
     def write(self, path, data, offset, fh):
-        return ENOENT
+        raise FuseOSError(EPERM)
