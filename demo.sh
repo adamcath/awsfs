@@ -58,5 +58,16 @@ step 'cat info | head -n 20'
 step 'cd ../../../../'
 
 echo "#####################################################"
+echo "# ELB"
+echo "#####################################################"
+step 'cd elb/us-west-2'
+step 'ls | head -n 10 || True'
+first="$(ls | head -n 1 || True)"
+step "cd $first"
+step 'cat info | head -n 20'
+step 'cat status | head -n 20'
+step 'cd ../../../'
+
+echo "#####################################################"
 echo "# Unmounting awsfs"
 echo "#####################################################"
