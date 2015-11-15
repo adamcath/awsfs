@@ -1,3 +1,6 @@
+from cache import LoadingCache
+
+
 class VNode:
     def __init__(self):
         pass
@@ -37,6 +40,21 @@ class VFile(VNode):
         return False
 
 
+class LazyReadOnlyDir(VDir):
+    def __init__(self, get_children_func):
+        VDir.__init__(self)
+        self.get_children_func = get_children_func
+
+    def get_children(self):
+        return self.get_children_func()
+
+
+class CachedLazyReadOnlyDir(LazyReadOnlyDir):
+    def __init__(self, get_children_func, ttl_sec):
+        cache = LoadingCache(lambda _: get_children_func(), ttl_sec)
+        LazyReadOnlyDir.__init__(self, lambda: cache.get('children'))
+
+
 class LazyReadOnlyFile(VFile):
     def __init__(self, get_contents_func):
         VFile.__init__(self)
@@ -55,6 +73,4 @@ class LazyReadOnlyFile(VFile):
 
 class StaticFile(LazyReadOnlyFile):
     def __init__(self, contents):
-        def load():
-            return contents
-        LazyReadOnlyFile.__init__(self, load)
+        LazyReadOnlyFile.__init__(self, lambda: contents)

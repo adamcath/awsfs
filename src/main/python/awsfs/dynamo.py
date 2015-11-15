@@ -1,8 +1,17 @@
 import boto3
-
 from vfs import *
-from cache import LoadingCache
 from format import to_json
+
+
+regions = [
+    "us-east-1", "us-west-2", "us-west-1", "eu-west-1",
+    "eu-central-1", "ap-southeast-1", "ap-northeast-1",
+    "sa-east-1"
+]
+
+
+def get_client(region):
+    return boto3.client('dynamodb', region_name=region)
 
 
 def simplify_dynamo_attr(attribute):
@@ -17,90 +26,63 @@ def simplify_dynamo_item(attr_dict):
     return {k: simplify_dynamo_attr(v) for k, v in attr_dict.items()}
 
 
-class DynamoDir(VDir):
-    def __init__(self):
-        VDir.__init__(self)
-        self.children = None
+def dynamo_root():
 
-    def get_children(self):
-        if not self.children:
-            self.children = [
-                (region_name, DynamoRegionDir(region_name))
-                for region_name
-                in ["us-east-1", "us-west-2", "us-west-1", "eu-west-1",
-                    "eu-central-1", "ap-southeast-1", "ap-northeast-1",
-                    "sa-east-1"]]
-        return self.children
+    def load():
+        return [(region_name, dynamo_region(region_name))
+                for region_name in regions]
+
+    return CachedLazyReadOnlyDir(load, -1)
 
 
-class DynamoRegionDir(VDir):
-    def __init__(self, region):
-        VDir.__init__(self)
-        self.region = region
+def dynamo_region(region):
 
-        def load(_):
-            db = boto3.client('dynamodb', region_name=self.region)
-            result = []
-            for page in db.get_paginator('list_tables').paginate():
-                result += [
-                    (table_name, DynamoTable(self.region, table_name))
-                    for table_name in page['TableNames']]
-            return result
-
-        self.cache = LoadingCache(load, 60)
-
-    def get_children(self):
-        children = self.cache.get('children')
-        return children
-
-
-class DynamoTable(VDir):
-    def __init__(self, region, table):
-        VDir.__init__(self)
-        self.region = region
-        self.table = table
-        self.db = boto3.client('dynamodb', region_name=self.region)
-
-        def load(_):
-            return self.miss()
-        self.cache = LoadingCache(load, 60)
-
-    def get_children(self):
-        return self.cache.get('rows')
-
-    def miss(self):
-        key_col = self.load_key_col()
+    def load():
         result = []
-        for page in self.db.get_paginator('scan').paginate(
-                TableName=self.table,
-                AttributesToGet=[key_col]):
-            for item in page['Items']:
-                key_attr = item[key_col]
-                filename = simplify_dynamo_attr(key_attr)
-                value = DynamoRow(self.region, self.table,
-                                  key_col, key_attr)
-                result.append((filename, value))
+        for page in get_client(region).get_paginator('list_tables').paginate():
+            result += [
+                (table_name, dynamo_table(region, table_name))
+                for table_name in page['TableNames']]
         return result
 
-    def load_key_col(self):
-        for key in (self.db.describe_table(TableName=self.table)
+    return CachedLazyReadOnlyDir(load, 60)
+
+
+def dynamo_table(region, table):
+
+    def load_key_col():
+        for key in (get_client(region).describe_table(TableName=table)
                     ['Table']['KeySchema']):
             if key['KeyType'] == 'HASH':
                 return key['AttributeName']
         raise Exception('Table has no hash key!')
 
+    def load_rows():
+        key_col = load_key_col()
+        result = []
+        for page in get_client(region).get_paginator('scan').paginate(
+                TableName=table,
+                AttributesToGet=[key_col]):
+            for item in page['Items']:
+                key_attr = item[key_col]
+                filename = simplify_dynamo_attr(key_attr)
+                value = dynamo_item(region, table,
+                                    key_col, key_attr)
+                result.append((filename, value))
+        return result
 
-class DynamoRow(LazyReadOnlyFile):
-    def __init__(self, region, table, key_col, key_attr):
-        self.db = boto3.client('dynamodb', region_name=region)
-        self.table = table
-        self.key_obj = {key_col: key_attr}
-        self.cache = LoadingCache(lambda _: self.miss(), 60)
+    return CachedLazyReadOnlyDir(load_rows, 60)
 
-        def load():
-            return self.cache.get('contents')
-        LazyReadOnlyFile.__init__(self, load)
 
-    def miss(self):
-        item = self.db.get_item(TableName=self.table, Key=self.key_obj)['Item']
-        return to_json(simplify_dynamo_item(item)).encode()
+def dynamo_item(region, table, key_col, key_attr):
+
+    def load():
+        return (
+            to_json(
+                simplify_dynamo_item(
+                    get_client(region).
+                    get_item(TableName=table, Key={key_col: key_attr})
+                    ['Item'])
+            ).encode())
+
+    return LazyReadOnlyFile(load)

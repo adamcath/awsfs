@@ -5,14 +5,14 @@ from time import time
 from fuse import FuseOSError, Operations, LoggingMixIn
 
 from vfs import *
-from dynamo import DynamoDir
-from ec2 import Ec2Dir
+from dynamo import dynamo_root
+from ec2 import ec2_root
 
 
 class RootDir(VDir):
     def __init__(self):
         VDir.__init__(self)
-        self.children = [("dynamo", DynamoDir()), ("ec2", Ec2Dir())]
+        self.children = [("dynamo", dynamo_root()), ("ec2", ec2_root())]
 
     def get_children(self):
         return self.children

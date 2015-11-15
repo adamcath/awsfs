@@ -1,50 +1,42 @@
 import boto3
 
-from vfs import *
-from cache import LoadingCache
 from format import to_json
+from vfs import *
+
+
+regions = [
+    "ap-northeast-1", "ap-southeast-1", "ap-southeast-2",
+    "eu-central-1", "eu-west-1", "sa-east-1", "us-east-1",
+    "us-west-1", "us-west-2"
+]
 
 
 def get_client(region):
     return boto3.client('ec2', region_name=region)
 
 
-class Ec2Dir(VDir):
-    def __init__(self):
-        VDir.__init__(self)
-        self.children = [
-                (region_name, Ec2RegionDir(region_name))
-                for region_name
-                in ["ap-northeast-1", "ap-southeast-1", "ap-southeast-2",
-                    "eu-central-1", "eu-west-1", "sa-east-1", "us-east-1",
-                    "us-west-1", "us-west-2"]]
+def ec2_root():
 
-    def get_children(self):
-        return self.children
+    def load():
+        return [(region_name, ec2_region(region_name))
+                for region_name in regions]
+
+    return CachedLazyReadOnlyDir(load, -1)
 
 
-class Ec2RegionDir(VDir):
-    def __init__(self, region):
-        VDir.__init__(self)
-        self.children = [
-            ("instances", Ec2InstancesDir(region))]
+def ec2_region(region):
 
-    def get_children(self):
-        return self.children
+    def load():
+        return [("instances", ec2_instances_dir(region))]
+
+    return CachedLazyReadOnlyDir(load, -1)
 
 
-class Ec2InstancesDir(VDir):
-    def __init__(self, region):
-        VDir.__init__(self)
-        self.region = region
-        self.cache = LoadingCache(lambda _: self.miss(), 60)
+def ec2_instances_dir(region):
 
-    def get_children(self):
-        return self.cache.get('instance-ids')
-
-    def miss(self):
+    def load():
         result = []
-        for page in (get_client(self.region).
+        for page in (get_client(region).
                      get_paginator('describe_instances').
                      paginate()):
             for reservation in page['Reservations']:
@@ -52,29 +44,31 @@ class Ec2InstancesDir(VDir):
                     instance_id = instance['InstanceId']
                     result.append(
                         (instance_id,
-                         Ec2InstanceDir(self.region, instance_id, instance)))
+                         ec2_instance_dir(region, instance_id, instance)))
         return result
 
+    return CachedLazyReadOnlyDir(load, 60)
 
-class Ec2InstanceDir(VDir):
-    def __init__(self, region, instance_id, instance_obj):
-        VDir.__init__(self)
-        self.children = [
+
+def ec2_instance_dir(region, instance_id, instance_obj):
+
+    def load():
+        return [
             ("info", StaticFile(to_json(instance_obj).encode())),
-            ("status", Ec2InstanceStatusFile(region, instance_id))]
+            ("status", ec2_instance_status_file(region, instance_id))
+        ]
 
-    def get_children(self):
-        return self.children
+    return CachedLazyReadOnlyDir(load, -1)
 
 
-class Ec2InstanceStatusFile(LazyReadOnlyFile):
-    def __init__(self, region, instance_id):
-        def load():
-            statuses = (get_client(region).
-                        describe_instance_status(InstanceIds=[instance_id])
-                        ['InstanceStatuses'])
-            if len(statuses) == 0:
-                return 'null'
-            return to_json(statuses[0]).encode()
+def ec2_instance_status_file(region, instance_id):
 
-        LazyReadOnlyFile.__init__(self, load)
+    def load():
+        statuses = (get_client(region).
+                    describe_instance_status(InstanceIds=[instance_id])
+                    ['InstanceStatuses'])
+        if len(statuses) == 0:
+            return 'null'
+        return to_json(statuses[0]).encode()
+
+    return LazyReadOnlyFile(load)
