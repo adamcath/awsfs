@@ -38,3 +38,4 @@ mnt="$1"
 python "$here/src/main/python/awsfs" "$mnt"
 
 echo "awsfs is now available at $mnt"
+echo "Logs are in the system log"
