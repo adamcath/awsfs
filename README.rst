@@ -13,11 +13,11 @@ Installation
 
 First install FUSE, a native package that allows filesystems like this one to
 be implemented in userland. You can get it from https://osxfuse.github.io/ or
-from homebrew:
+from homebrew::
 
     $ brew install Caskroom/cask/osxfuse
 
-Only local dev installation of awsfs is currently supported:
+Only local dev installation of awsfs is currently supported::
 
     $ pip install --user -e .
 
@@ -38,9 +38,7 @@ Let's play around::
 
     $ cd ~/aws
     $ ls
-    dynamo
-    ec2
-    elb
+    dynamo  ec2  elb
     $ cd dynamo/us-west-2
     $ ls
     some_table
