@@ -6,7 +6,8 @@ from fuse import FUSE
 
 from awsfs import AwsOps
 
-if __name__ == '__main__':
+
+def main():
     if len(argv) != 2:
         print('usage: %s <mountpoint>' % argv[0])
         exit(1)
@@ -19,4 +20,8 @@ if __name__ == '__main__':
 
     logging.getLogger().setLevel(logging.DEBUG)
 
-    fuse = FUSE(AwsOps(), argv[1], foreground=False)
+    FUSE(AwsOps(), argv[1], foreground=False)
+
+
+if __name__ == '__main__':
+    main()
