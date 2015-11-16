@@ -4,6 +4,7 @@ setup(
     name='awsfs',
     version='0.1.0.dev1',
     description='Treat AWS resources like a filesystem for command-line bliss.',
+    long_description=open('README.rst').read(),
     url='https://github.com/adamcath/awsfs',
     author='Adam Cath',
     author_email='adam.cath@gmail.com',
