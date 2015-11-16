@@ -25,7 +25,7 @@ echo "#####################################################"
 echo
 
 mnt="$(mktemp -d /tmp/aws.XX)"
-step "./mount-aws.sh \"$mnt\""
+step "python "awsfs" \"$mnt\""
 sleep 1  # TODO why?
 
 function cleanup {
@@ -92,5 +92,5 @@ echo
 step 'cd /'
 
 popd &> /dev/null
-step "./unmount-aws.sh \"$mnt\""
+step "umount \"$mnt\""
 trap - EXIT
