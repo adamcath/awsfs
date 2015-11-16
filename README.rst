@@ -19,7 +19,8 @@ from homebrew::
 
 Only local dev installation of awsfs is currently supported::
 
-    $ pip install --user -e .
+    $ git clone https://github.com/adamcath/awsfs.git
+    $ pip install --user -e awsfs
 
 ---------------
 Getting started
