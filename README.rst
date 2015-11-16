@@ -29,12 +29,12 @@ Before you can use awsfs, you need to tell it about your AWS credentials.
 The simplest way is to set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.
 See the AWS docs for other methods.
 
-Now you can mount awsfs:
+Now you can mount awsfs::
 
     $ mkdir ~/aws  # You could put this anywhere
     $ awsfs ~/aws
 
-Let's play around!
+Let's play around::
 
     $ cd ~/aws
     $ ls
