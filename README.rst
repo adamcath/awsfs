@@ -46,3 +46,39 @@ Let's play around::
     another_table
 
 To see an automated demo, run ``demo``.
+
+--------------
+TODO for beta
+--------------
+
+The project is in a very early state. It's more convenient to track all the
+un-done stuff here than in a lot of separate issues.
+
+- Tests
+- Error handling: AWS exceptions should never escape our code
+- Check that AWS credentials work on startup
+- Add --mount and --unmount CLI options
+- Which services should we support?
+- Paging: a Dynamo table could be a very big directory. Sadly Fusepy appears
+  to hide the streaming directory APIs.
+- Modeling: what are the principals behind whether something is a file or dir?
+  Currently its a judgment call.
+- Modeling: let's represent links between things in a consistent way.
+- Multi-threading: I *think* it's thread-safe now, but I don't understand FUSE's
+  threading model well enough to be confident.
+- Permissions: can we map from AWS?
+- Caching: Currently most things are just on a 60 second cache, period.
+  Can we do better (e.g. if you modify something through awsfs, you should
+  probably see those writes immediately).
+- Logging: do more. Is syslog really appropriate? Should we expose a virtual
+  log file inside the filesystem?
+- Writes: currently it's read only. There are some cases where writing directly
+  would be natural (e.g. dynamo, s3), and other cases where it might make
+  more sense to expose "programs" (cd ec2/<instance-id>; terminate).
+- Queries: make it easy to search dynamo/s3 not by primary key? You can use
+  grep but it's very inefficient and not always natural.
+  e.g. cd dynamo-table; query firstname=foo
+  Is this in scope?
+- getattr returns some fake values (size, timestamps). Does it matter? Can we
+  improve without loading the whole things?
+- Implement statfs?
