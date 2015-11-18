@@ -5,7 +5,7 @@ awsfs
 This package provides a filesystem-like interface to Amazon Web Services.
 
 It is in early development and only provides access to a few services
-(currently ec2, dynamodb, and ecs).
+(currently ec2, dynamodb, and elb).
 
 ------------
 Installation
