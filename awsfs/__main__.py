@@ -88,7 +88,7 @@ def setup_logging():
         'awsfs.log', maxBytes=1024 * 1024 * 10)
     file_handler.setFormatter(
         logging.Formatter(
-            '%(levelname)s %(threadName)s %(name)s %(message)s'))
+            '%(levelname)s %(asctime)s  %(threadName)s  %(name)s\n%(message)s'))
     logging.getLogger().addHandler(file_handler)
 
     # Set log levels
