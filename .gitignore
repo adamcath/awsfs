@@ -1,6 +1,6 @@
+.coverage
 .idea
-build
 *.egg-info
 *.pyc
-awsfs.log.coverage
 awsfs.log
+build
