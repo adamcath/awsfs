@@ -18,7 +18,7 @@ setup(
     ],
     keywords='aws fuse cloud boto tools iaas',
     packages=['awsfs'],
-    install_requires=['boto3>=1.2', 'fusepy>=2'],
+    install_requires=['boto3>=1.2', 'fusepy>=2', 'botocore>=1.3'],
     entry_points={
         'console_scripts': ['awsfs=awsfs.__main__:main']
     }
