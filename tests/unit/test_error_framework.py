@@ -38,7 +38,3 @@ class MyAwsOps(awsfs.AwsOps):
 
     def crash(self):
         self.crashed = True
-
-
-if __name__ == '__main__':
-    unittest.main()

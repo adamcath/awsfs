@@ -54,6 +54,7 @@ Running tests
 
 Once you've installed awsfs (see above)::
 
+    $ pip install -r requirements.txt
     $ ./unit_tests.sh
     test_when_an_op_returns_then_propagate_it (test_error_framework.TestOperationWrapper) ... ok
     ...
