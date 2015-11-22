@@ -70,8 +70,6 @@ The project is in a very early state. It's more convenient to track all the
 un-done stuff here than in a lot of separate issues.
 
 - Tests
-- Check that AWS credentials work on startup
-- Add --mount and --unmount CLI options
 - Which services should we support?
 - Paging: a Dynamo table could be a very big directory. Sadly Fusepy appears
   to hide the streaming directory APIs.

@@ -1,6 +1,10 @@
+import boto3
 import logging
 import logging.handlers
 from sys import argv, exit, stderr
+
+from botocore.exceptions import NoCredentialsError
+from botocore.exceptions import PartialCredentialsError
 
 from awsfs import AwsOps
 
@@ -10,6 +14,8 @@ usage = '''usage: awsfs path
 Mounts a virtual device in the filesystem in which
 you can access various AWS services, treating them
 like directories and files.
+
+You can unmount awsfs with `umount path`.
 
 Your AWS credentials should be in your environment.
 The simplest way is to set AWS_ACCESS_KEY_ID and
@@ -36,6 +42,8 @@ def main():
         error('or from homebrew: `brew install Caskroom/cask/osxfuse`.')
         exit(2)
 
+    test_boto_conn()
+
     setup_logging()
 
     FUSE(AwsOps(), argv[1], foreground=False)
@@ -44,6 +52,26 @@ def main():
 def error(line):
     stderr.write(line + '\n')
     stderr.flush()
+
+
+def test_boto_conn():
+    try:
+        (boto3.resource('dynamodb', region_name='us-west-2').
+            Table('nonexistanttablejustfortesting').
+            get_item(Key={'S': 'keythatdoesntexist'}))
+    except NoCredentialsError:
+        error('We\'re unable to find your AWS credentials.')
+        error('The simplest way is to set AWS_ACCESS_KEY_ID and')
+        error('AWS_SECRET_ACCESS_KEY. See the AWS docs for other')
+        error('methods.')
+        exit(3)
+    except PartialCredentialsError as e:
+        error('There\'s a problem with your AWS credentials: ' + str(e))
+        exit(3)
+    except:
+        # Other problems, like that that table doesn't exist,
+        # don't indicate a problem with the connection.
+        pass
 
 
 def setup_logging():
