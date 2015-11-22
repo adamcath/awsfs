@@ -45,7 +45,21 @@ Let's play around::
     some_table
     another_table
 
-To see an automated demo, run ``demo``.
+To see an automated demo, run ``./demo.sh``. The demo uses YOUR AWS account,
+so it's best if you have some stuff in there.
+
+-------------
+Running tests
+-------------
+
+Once you've installed awsfs (see above)::
+
+    $ ./unit_tests.sh
+    test_when_an_op_returns_then_propagate_it (test_error_framework.TestOperationWrapper) ... ok
+    ...
+    Ran 4 tests in 0.001s
+
+    OK
 
 --------------
 TODO for beta

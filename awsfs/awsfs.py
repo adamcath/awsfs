@@ -48,7 +48,11 @@ class AwsOps(Operations):
                 log.fatal('<- %s resulted in an unrecoverable error. '
                           'Unmounting FS and crashing!',
                           op, exc_info=True)
-                crash()
+                self.crash()
+
+    # Unit tests can replace this
+    def crash(self):
+        os.abort()
 
     def chmod(self, path, mode):
         raise FuseOSError(EPERM)
@@ -165,11 +169,6 @@ class RootDir(VDir):
             cur = child
 
         return cur
-
-
-# Unit tests can replace this
-def crash():
-    os.abort()
 
 
 def to_fuse_ex(e):
