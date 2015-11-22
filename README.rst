@@ -55,7 +55,6 @@ The project is in a very early state. It's more convenient to track all the
 un-done stuff here than in a lot of separate issues.
 
 - Tests
-- Error handling: AWS exceptions should never escape our code
 - Check that AWS credentials work on startup
 - Add --mount and --unmount CLI options
 - Which services should we support?

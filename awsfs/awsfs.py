@@ -1,49 +1,54 @@
+import logging
+import os
 from errno import *
-from stat import S_IFDIR, S_IFREG
 from time import time
 
-from fuse import FuseOSError, Operations, LoggingMixIn
+from botocore.exceptions import NoCredentialsError, \
+    PartialCredentialsError, ClientError
+from fuse import FuseOSError, Operations
 
-from vfs import *
 from dynamo import dynamo_root
 from ec2 import ec2_root
 from elb import elb_root
+from vfs import *
 
 
-class RootDir(VDir):
-    def __init__(self):
-        VDir.__init__(self)
-        self.children = [
-            ("dynamo", dynamo_root()),
-            ("ec2", ec2_root()),
-            ("elb", elb_root())
-        ]
-
-    def get_children(self):
-        return self.children
+log = logging.getLogger('awsfs')
 
 
-class AwsOps(LoggingMixIn, Operations):
+class AwsOps(Operations):
     def __init__(self):
         self.root = RootDir()
 
-    def resolve(self, path):
-        parts = path.split("/")[1:]
-        if parts[-1] == '':
-            del parts[-1]
-
-        cur = self.root
-        for part in parts:
-            if not cur.is_dir():
-                raise FuseOSError(ENOTDIR)
-            child = cur.get_child(part)
-            if not child:
-                raise FuseOSError(ENOENT)
-            cur = child
-
-        return cur
-
-    # The operations
+    def __call__(self, op, *args):
+        log.debug('-> %s %s', op, repr(args))
+        try:
+            ret = Operations.__call__(self, op, *args)
+            log.debug('<- %s %s', op, repr(ret))
+            return ret
+        except FuseOSError as fuse_ex:
+            # The lower-level code can log at a higher level if cares to
+            log.debug('<- %s %d (%s)', op, fuse_ex.errno, fuse_ex.strerror)
+            raise fuse_ex
+        except BaseException as e:
+            log.error("uh oh")
+            # For convenience, we let the lower-level code allow some
+            # exceptions to bubble out. Process those now.
+            (fuse_ex, level) = to_fuse_ex(e)
+            if fuse_ex:
+                log.log(level,
+                        '<- %s %d (%s): %s: %s',
+                        op, fuse_ex.errno, fuse_ex.strerror,
+                        e.__class__.__name__, e.message or '-')
+                raise fuse_ex
+            else:
+                # Crap, we didn't expect this kind of error.
+                # Anything that made it out here is a programming error.
+                # The wise choice is to dump core so we can debug post-mortem.
+                log.fatal('<- %s resulted in an unrecoverable error. '
+                          'Unmounting FS and crashing!',
+                          op, exc_info=True)
+                crash()
 
     def chmod(self, path, mode):
         raise FuseOSError(EPERM)
@@ -55,7 +60,7 @@ class AwsOps(LoggingMixIn, Operations):
         raise FuseOSError(EPERM)
 
     def getattr(self, path, fh=None):
-        node = self.resolve(path)
+        node = self.root.resolve(path)
         if node.is_dir():
             return dict(st_mode=(S_IFDIR | 0755), st_ctime=time(),
                         st_mtime=time(), st_atime=time(), st_nlink=2)
@@ -74,13 +79,13 @@ class AwsOps(LoggingMixIn, Operations):
         raise FuseOSError(EPERM)
 
     def open(self, path, flags):
-        node = self.resolve(path)
+        node = self.root.resolve(path)
         if node.is_dir():
             raise FuseOSError(EISDIR)
         return 0
 
     def read(self, path, size, offset, fh):
-        node = self.resolve(path)
+        node = self.root.resolve(path)
         if node.is_dir():
             raise FuseOSError(EISDIR)
 
@@ -90,14 +95,14 @@ class AwsOps(LoggingMixIn, Operations):
         return contents[offset:offset + size]
 
     def readdir(self, path, fh):
-        node = self.resolve(path)
+        node = self.root.resolve(path)
         if not node.is_dir():
             raise FuseOSError(ENOTDIR)
 
         return [name for (name, value) in node.get_children()]
 
     def readlink(self, path):
-        node = self.resolve(path)
+        node = self.root.resolve(path)
         if node.get_type() != S_IFLNK:
             raise FuseOSError(EINVAL)
         return node.read()
@@ -131,3 +136,86 @@ class AwsOps(LoggingMixIn, Operations):
 
     def write(self, path, data, offset, fh):
         raise FuseOSError(EPERM)
+
+
+class RootDir(VDir):
+    def __init__(self):
+        VDir.__init__(self)
+        self.children = [
+            ("dynamo", dynamo_root()),
+            ("ec2", ec2_root()),
+            ("elb", elb_root())
+        ]
+
+    def get_children(self):
+        return self.children
+
+    def resolve(self, path):
+        parts = path.split("/")[1:]
+        if parts[-1] == '':
+            del parts[-1]
+
+        cur = self
+        for part in parts:
+            if not cur.is_dir():
+                raise FuseOSError(ENOTDIR)
+            child = cur.get_child(part)
+            if not child:
+                raise FuseOSError(ENOENT)
+            cur = child
+
+        return cur
+
+
+# Unit tests can replace this
+def crash():
+    os.abort()
+
+
+def to_fuse_ex(e):
+    # Some boto functions throw this
+    if isinstance(e, IOError):
+        return FuseOSError(EIO), logging.WARNING
+
+    # This should have been check on startup, but it's possible
+    # for it to get screwed up later
+    if (isinstance(e, NoCredentialsError) or
+            isinstance(e, PartialCredentialsError)):
+        return FuseOSError(ENOLINK), logging.WARNING
+
+    # boto operations return this when they are able to make the request,
+    # but it fails
+    if isinstance(e, ClientError):
+
+        # Look at a few common response codes.
+        # We can't try to capture them all. There's no comprehensive list
+        # online.
+        code = e.response['Code']
+        if code in ['ResourceNotFoundException']:
+            return FuseOSError(ENOENT), logging.INFO
+        if code in ['AuthFailure', 'UnauthorizedOperation']:
+            return FuseOSError(EPERM), logging.WARNING
+        if code in ['Blocked']:
+            return FuseOSError(EPERM), logging.WARNING
+
+        # There are zillions of response codes.
+        # Use the HTTP status to figure out a little more.
+        # Note this is not sufficient - trying to scan a non-existent
+        # dynamo table results in ResourceNotFoundException but with 400!
+        status = e.response['HTTPStatusCode']
+        if status in [401, 402, 403]:
+            return FuseOSError(EPERM), logging.WARNING
+        if status in [404, 410]:
+            return FuseOSError(ENOENT), logging.INFO
+        if status in [409]:
+            return FuseOSError(ESTALE), logging.WARNING
+        if status >= 500:
+            return FuseOSError(EIO), logging.WARNING
+
+        # This is bad, but we don't really need to crash.
+        # We know that our call made it through but failed. I think it's
+        # worth returning a generic EIO and then looking in the logs to debug.
+        log.error('Unexpected boto error %s', str(e.response), exc_info=True)
+        return FuseOSError(EIO), logging.ERROR
+
+    return None, None
