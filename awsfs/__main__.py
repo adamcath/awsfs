@@ -2,32 +2,10 @@ import logging
 import logging.handlers
 from sys import argv, exit, stderr
 
-
-def error(line):
-    stderr.write(line + '\n')
-    stderr.flush()
-
-try:
-    from fuse import FUSE
-except EnvironmentError as e:
-    if e.message != 'Unable to find libfuse':
-        raise
-    error('awsfs requires the native package FUSE to be installed.')
-    error('You can get it from https://osxfuse.github.io,')
-    error('or from homebrew: `brew install Caskroom/cask/osxfuse`.')
-    exit(2)
-
 from awsfs import AwsOps
 
-syslog_handler = logging.handlers.SysLogHandler(address='/var/run/syslog')
-syslog_handler.setFormatter(
-    logging.Formatter(
-        'awsfs: %(threadName)s %(message)s'))
-logging.getLogger().addHandler(syslog_handler)
-logging.getLogger().setLevel(logging.DEBUG)
 
-
-usage='''usage: awsfs path
+usage = '''usage: awsfs path
 
 Mounts a virtual device in the filesystem in which
 you can access various AWS services, treating them
@@ -48,7 +26,47 @@ def main():
         error(usage)
         exit(1)
 
+    try:
+        from fuse import FUSE
+    except EnvironmentError as e:
+        if e.message != 'Unable to find libfuse':
+            raise
+        error('awsfs requires the native package FUSE to be installed.')
+        error('You can get it from https://osxfuse.github.io,')
+        error('or from homebrew: `brew install Caskroom/cask/osxfuse`.')
+        exit(2)
+
+    setup_logging()
+
     FUSE(AwsOps(), argv[1], foreground=False)
+
+
+def error(line):
+    stderr.write(line + '\n')
+    stderr.flush()
+
+
+def setup_logging():
+
+    # Add syslog handler
+    syslog_handler = logging.handlers.SysLogHandler(address='/var/run/syslog')
+    syslog_handler.setFormatter(
+        logging.Formatter(
+            'awsfs: %(levelname)s %(threadName)s %(name)s %(message)s'))
+    logging.getLogger().addHandler(syslog_handler)
+
+    # Add file handler
+    file_handler = logging.handlers.RotatingFileHandler(
+        'awsfs.log', maxBytes=1024 * 1024 * 10)
+    file_handler.setFormatter(
+        logging.Formatter(
+            '%(levelname)s %(threadName)s %(name)s %(message)s'))
+    logging.getLogger().addHandler(file_handler)
+
+    # Set log levels
+    logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger('botocore.vendored.requests.packages.urllib3') \
+        .setLevel(logging.WARNING)
 
 
 if __name__ == '__main__':
