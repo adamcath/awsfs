@@ -6,8 +6,6 @@ from sys import argv, exit, stderr
 from botocore.exceptions import NoCredentialsError
 from botocore.exceptions import PartialCredentialsError
 
-from awsfs import AwsOps
-
 
 usage = '''usage: awsfs path
 
@@ -41,6 +39,8 @@ def main():
         error('You can get it from https://osxfuse.github.io,')
         error('or from homebrew: `brew install Caskroom/cask/osxfuse`.')
         exit(2)
+
+    from awsfs import AwsOps
 
     test_boto_conn()
 
