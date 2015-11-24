@@ -31,7 +31,6 @@ class AwsOps(Operations):
             log.debug('<- %s %d (%s)', op, fuse_ex.errno, fuse_ex.strerror)
             raise fuse_ex
         except BaseException as e:
-            log.error("uh oh")
             # For convenience, we let the lower-level code allow some
             # exceptions to bubble out. Process those now.
             (fuse_ex, level) = to_fuse_ex(e)
