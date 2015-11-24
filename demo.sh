@@ -62,7 +62,14 @@ step 'cd ec2/us-west-2/instances'
 step 'ls | head -n 10 || True'
 first="$(ls | head -n 1 || True)"
 step "cd $first"
-step 'cat info | head -n 20'
+step 'cat info | head -n 10'
+
+step 'cd ../../security-groups'
+step 'ls | head -n 10 || True'
+first="$(ls -r | head -n 1 || True)"
+step "cd $first"
+step 'cat info | head -n 10'
+
 step 'cd ../../../../'
 
 echo
@@ -74,14 +81,14 @@ step 'cd elb/us-west-2'
 step 'ls | head -n 10 || True'
 first="$(ls | head -n 1 || True)"
 step "cd $first"
-step 'cat info | head -n 20'
-step 'cat status | head -n 20'
+step 'cat info | head -n 10'
+step 'cat status | head -n 10'
+
 step 'cd instances'
 step 'ls -al | head -n 10 || True'
-first="$(ls | head -n 1 || True)"
-step "cd $first"
-step 'ls'
-step 'cd ../../../../'
+
+step 'cd ../security-groups'
+step 'ls -al | head -n 10 || True'
 
 echo
 echo "#####################################################"
