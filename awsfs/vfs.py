@@ -66,6 +66,15 @@ class VLink(VFile):
         return self.dest.encode()
 
 
+class StaticDir(VDir):
+    def __init__(self, children):
+        VDir.__init__(self)
+        self.children = children
+
+    def get_children(self):
+        return self.children
+
+
 class LazyReadOnlyDir(VDir):
     def __init__(self, get_children_func):
         VDir.__init__(self)
@@ -76,7 +85,7 @@ class LazyReadOnlyDir(VDir):
 
 
 class CachedLazyReadOnlyDir(LazyReadOnlyDir):
-    def __init__(self, get_children_func, ttl_sec):
+    def __init__(self, get_children_func, ttl_sec=60):
         cache = LoadingCache(lambda _: get_children_func(), ttl_sec)
         LazyReadOnlyDir.__init__(self, lambda: cache.get('children'))
 
