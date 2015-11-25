@@ -66,7 +66,10 @@ class VLink(VFile):
         return self.dest.encode()
 
 
-class StaticDir(VDir):
+class SDir(VDir):
+    """
+    A directory with static contents.
+    """
     def __init__(self, children):
         VDir.__init__(self)
         self.children = children
@@ -75,7 +78,10 @@ class StaticDir(VDir):
         return self.children
 
 
-class LazyReadOnlyDir(VDir):
+class LDir(VDir):
+    """
+    A directory with lazy-loaded contents.
+    """
     def __init__(self, get_children_func):
         VDir.__init__(self)
         self.get_children_func = get_children_func
@@ -84,13 +90,37 @@ class LazyReadOnlyDir(VDir):
         return self.get_children_func()
 
 
-class CachedLazyReadOnlyDir(LazyReadOnlyDir):
+class CLDir(LDir):
+    """
+    A directory with cached, lazy-loaded contents.
+    """
     def __init__(self, get_children_func, ttl_sec=60):
         cache = LoadingCache(lambda _: get_children_func(), ttl_sec)
-        LazyReadOnlyDir.__init__(self, lambda: cache.get('children'))
+        LDir.__init__(self, lambda: cache.get('children'))
 
 
-class LazyReadOnlyFile(VFile):
+class SFile(VFile):
+    """
+    A file with static contents.
+    """
+    def __init__(self, contents):
+        VFile.__init__(self)
+        self.contents = contents
+
+    def read(self):
+        return self.contents
+
+    def write(self, _):
+        pass
+
+    def get_size(self):
+        return len(self.contents)
+
+
+class LFile(VFile):
+    """
+    A file with lazy-loaded contents.
+    """
     def __init__(self, get_contents_func):
         VFile.__init__(self)
         self.get_contents_func = get_contents_func
@@ -104,8 +134,3 @@ class LazyReadOnlyFile(VFile):
     def get_size(self):
         # TODO This is crappy for perf. Does it really need to be accurate?
         return len(self.read())
-
-
-class StaticFile(LazyReadOnlyFile):
-    def __init__(self, contents):
-        LazyReadOnlyFile.__init__(self, lambda: contents)

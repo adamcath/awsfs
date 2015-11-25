@@ -21,7 +21,7 @@ def elb_root():
         return [(region_name, elb_region(region_name))
                 for region_name in regions]
 
-    return CachedLazyReadOnlyDir(load, -1)
+    return CLDir(load, -1)
 
 
 def elb_region(region):
@@ -38,20 +38,20 @@ def elb_region(region):
                      elb_dir(region, elb_id, elb)))
         return result
 
-    return CachedLazyReadOnlyDir(load, 60)
+    return CLDir(load, 60)
 
 
 def elb_dir(region, elb_id, elb_obj):
 
     def load():
         return [
-            ("info", StaticFile(to_json(elb_obj).encode())),
+            ("info", SFile(to_json(elb_obj).encode())),
             ("status", elb_instance_status_file(region, elb_id)),
             ("instances", elb_instances_dir(region, elb_obj)),
             ("security-groups", elb_security_groups_dir(region, elb_obj))
         ]
 
-    return CachedLazyReadOnlyDir(load, -1)
+    return CLDir(load, -1)
 
 
 def elb_instance_status_file(region, elb_id):
@@ -62,7 +62,7 @@ def elb_instance_status_file(region, elb_id):
                     ['InstanceStates'])
         return to_json(statuses).encode()
 
-    return LazyReadOnlyFile(load)
+    return LFile(load)
 
 
 def elb_instances_dir(region, elb_obj):
@@ -75,7 +75,7 @@ def elb_instances_dir(region, elb_obj):
             result.append((instance['InstanceId'], VLink(path)))
         return result
 
-    return CachedLazyReadOnlyDir(load, -1)
+    return CLDir(load, -1)
 
 
 def elb_security_groups_dir(region, elb_obj):
@@ -88,4 +88,4 @@ def elb_security_groups_dir(region, elb_obj):
             result.append((security_group_id, VLink(path)))
         return result
 
-    return CachedLazyReadOnlyDir(load, -1)
+    return CLDir(load, -1)

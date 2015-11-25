@@ -32,7 +32,7 @@ def dynamo_root():
         return [(region_name, dynamo_region(region_name))
                 for region_name in regions]
 
-    return CachedLazyReadOnlyDir(load, -1)
+    return CLDir(load, -1)
 
 
 def dynamo_region(region):
@@ -45,7 +45,7 @@ def dynamo_region(region):
                 for table_name in page['TableNames']]
         return result
 
-    return CachedLazyReadOnlyDir(load, 60)
+    return CLDir(load, 60)
 
 
 def dynamo_table(region, table):
@@ -71,7 +71,7 @@ def dynamo_table(region, table):
                 result.append((filename, value))
         return result
 
-    return CachedLazyReadOnlyDir(load_rows, 60)
+    return CLDir(load_rows, 60)
 
 
 def dynamo_item(region, table, key_col, key_attr):
@@ -85,4 +85,4 @@ def dynamo_item(region, table, key_col, key_attr):
                     ['Item'])
             ).encode())
 
-    return LazyReadOnlyFile(load)
+    return LFile(load)

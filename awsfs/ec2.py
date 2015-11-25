@@ -5,25 +5,25 @@ from vfs import *
 
 
 def ec2_root():
-    return StaticDir([
-        (region, StaticDir([
-            ('instances', CachedLazyReadOnlyDir(lambda _region=region: [
-                (instance['InstanceId'], StaticDir([
-                    ('info', StaticFile(to_json(instance).encode())),
-                    ('status', LazyReadOnlyFile(lambda _instance=instance:
-                                                get_instance_status(_region, _instance['InstanceId']))),
-                    ('security-groups', StaticDir(get_instance_security_group_dirents(instance)))
+    return SDir([
+        (region, SDir([
+            ('instances', CLDir(lambda _region=region: [
+                (instance['InstanceId'], SDir([
+                    ('info', SFile(to_json(instance).encode())),
+                    ('status', LFile(lambda _instance=instance:
+                                     get_instance_status(_region, _instance['InstanceId']))),
+                    ('security-groups', SDir(get_instance_security_group_dirents(instance)))
                 ]))
                 for instance in get_instances(_region)
             ])),
-            ('security-groups', CachedLazyReadOnlyDir(lambda _region=region: ([
-                (group['GroupId'], StaticDir([
-                    ('info', StaticFile(to_json(group).encode()))
+            ('security-groups', CLDir(lambda _region=region: ([
+                (group['GroupId'], SDir([
+                    ('info', SFile(to_json(group).encode()))
                 ]))
                 for group in get_security_groups(_region)
             ] + [
                 ('by-name',
-                 StaticDir([
+                 SDir([
                      (group['GroupName'], VLink('../' + group['GroupId']))
                      for group in get_security_groups(_region) if 'GroupName' in group
                  ]))
