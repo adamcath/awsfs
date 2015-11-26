@@ -4,88 +4,55 @@ from format import to_json
 from vfs import *
 
 
-regions = [
-    "ap-northeast-1", "ap-southeast-1", "ap-southeast-2",
-    "eu-central-1", "eu-west-1", "sa-east-1", "us-east-1",
-    "us-west-1", "us-west-2"
-]
+def elb_root():
+
+    return SDir([
+        (region, CLDir(lambda _region=region: [
+            (elb['LoadBalancerName'], SDir([
+                ('info', SFile(to_json(elb).encode())),
+                ('status', LFile(lambda _elb=elb: get_status_file(_region, _elb))),
+                ('instances', SDir([
+                    (elb_instance['InstanceId'], VLink('../../../../ec2/%s/instances/%s' %
+                                                       (_region, elb_instance['InstanceId'])))
+                    for elb_instance in elb['Instances']
+                ])),
+                ('security-groups', SDir([
+                    (security_group_id, VLink('../../../../ec2/%s/security-groups/%s' %
+                                              (_region, security_group_id)))
+                    for security_group_id in elb['SecurityGroups']
+                ]))
+            ]))
+            for elb in get_elbs(_region)
+        ]))
+        for region in get_regions()
+    ])
+
+
+def get_regions():
+    return [
+        "ap-northeast-1", "ap-southeast-1", "ap-southeast-2",
+        "eu-central-1", "eu-west-1", "sa-east-1", "us-east-1",
+        "us-west-1", "us-west-2"
+    ]
 
 
 def get_client(region):
     return boto3.client('elb', region_name=region)
 
 
-def elb_root():
-
-    def load():
-        return [(region_name, elb_region(region_name))
-                for region_name in regions]
-
-    return CLDir(load, -1)
-
-
-def elb_region(region):
-
-    def load():
-        result = []
+def get_elbs(region):
+    return [
+        elb
         for page in (get_client(region).
                      get_paginator('describe_load_balancers').
-                     paginate()):
-            for elb in page['LoadBalancerDescriptions']:
-                elb_id = elb['LoadBalancerName']
-                result.append(
-                    (elb_id,
-                     elb_dir(region, elb_id, elb)))
-        return result
-
-    return CLDir(load, 60)
+                     paginate())
+        for elb in page['LoadBalancerDescriptions']
+    ]
 
 
-def elb_dir(region, elb_id, elb_obj):
-
-    def load():
-        return [
-            ("info", SFile(to_json(elb_obj).encode())),
-            ("status", elb_instance_status_file(region, elb_id)),
-            ("instances", elb_instances_dir(region, elb_obj)),
-            ("security-groups", elb_security_groups_dir(region, elb_obj))
-        ]
-
-    return CLDir(load, -1)
-
-
-def elb_instance_status_file(region, elb_id):
-
-    def load():
-        statuses = (get_client(region).
-                    describe_instance_health(LoadBalancerName=elb_id)
-                    ['InstanceStates'])
-        return to_json(statuses).encode()
-
-    return LFile(load)
-
-
-def elb_instances_dir(region, elb_obj):
-
-    def load():
-        result = []
-        for instance in elb_obj['Instances']:
-            instance_id = instance['InstanceId']
-            path = '../../../../ec2/%s/instances/%s' % (region, instance_id)
-            result.append((instance['InstanceId'], VLink(path)))
-        return result
-
-    return CLDir(load, -1)
-
-
-def elb_security_groups_dir(region, elb_obj):
-
-    def load():
-        result = []
-        for security_group_id in elb_obj['SecurityGroups']:
-            path = ('../../../../ec2/%s/security-groups/%s' %
-                    (region, security_group_id))
-            result.append((security_group_id, VLink(path)))
-        return result
-
-    return CLDir(load, -1)
+def get_status_file(region, elb):
+    name = elb['LoadBalancerName']
+    statuses = (get_client(region).
+                describe_instance_health(LoadBalancerName=name)
+                ['InstanceStates'])
+    return to_json(statuses).encode()
