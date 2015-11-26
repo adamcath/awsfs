@@ -34,8 +34,9 @@ class AwsOps(Operations):
         except BaseException as e:
             # For convenience, we let the lower-level code allow some
             # exceptions to bubble out. Process those now.
+            fuse_ex, level = (None, None)
             try:
-                (fuse_ex, level) = to_fuse_ex(e)
+                (fuse_ex, level) = self.to_fuse_ex(e)
             except:
                 log.fatal('<- %s failed to parse error. '
                           'Unmounting FS and crashing!',
@@ -57,9 +58,65 @@ class AwsOps(Operations):
                           op, exc_info=True)
                 self.crash()
 
+    def to_fuse_ex(self, e):
+        # Some boto functions throw this
+        if isinstance(e, IOError):
+            return FuseOSError(EIO), logging.WARNING
+
+        # This should have been check on startup, but it's possible
+        # for it to get screwed up later
+        if (isinstance(e, NoCredentialsError) or
+                isinstance(e, PartialCredentialsError)):
+            return FuseOSError(ENOLINK), logging.WARNING
+
+        # boto operations return this when they are able to make the request,
+        # but it fails
+        if isinstance(e, ClientError):
+
+            error_obj = ((e.response or {}).get('Error') or {})
+
+            # Look at a few common response codes.
+            # We can't try to capture them all. There's no comprehensive list
+            # online.
+            code = error_obj.get('Code')
+            if code in ['ResourceNotFoundException']:
+                return FuseOSError(ENOENT), logging.INFO
+            if code in ['AuthFailure', 'UnauthorizedOperation']:
+                return FuseOSError(EPERM), logging.WARNING
+            if code in ['Blocked']:
+                return FuseOSError(EPERM), logging.WARNING
+
+            # There are zillions of response codes.
+            # Use the HTTP status to figure out a little more.
+            # Note this is not sufficient - trying to scan a non-existent
+            # dynamo table results in ResourceNotFoundException but with 400!
+            status = error_obj.get('HTTPStatusCode')
+            if status in [401, 402, 403]:
+                return FuseOSError(EPERM), logging.WARNING
+            if status in [404, 410]:
+                return FuseOSError(ENOENT), logging.INFO
+            if status in [409]:
+                return FuseOSError(ESTALE), logging.WARNING
+            if status >= 500:
+                return FuseOSError(EIO), logging.WARNING
+
+            # This is bad, but we don't really need to crash.
+            # We know that our call made it through but failed.
+            # I think it's worth returning a generic EIO and then looking
+            # in the logs to debug.
+            log.error('Unexpected boto error %s',
+                      str(e.response), exc_info=True)
+            return FuseOSError(EIO), logging.ERROR
+
+        return None, None
+
     # Unit tests can replace this
     def crash(self):
         os.abort()
+
+    #################################################
+    # The actual operations
+    #################################################
 
     def chmod(self, path, mode):
         raise FuseOSError(EPERM)
@@ -177,52 +234,3 @@ class RootDir(VDir):
             cur = child
 
         return cur
-
-
-def to_fuse_ex(e):
-    # Some boto functions throw this
-    if isinstance(e, IOError):
-        return FuseOSError(EIO), logging.WARNING
-
-    # This should have been check on startup, but it's possible
-    # for it to get screwed up later
-    if (isinstance(e, NoCredentialsError) or
-            isinstance(e, PartialCredentialsError)):
-        return FuseOSError(ENOLINK), logging.WARNING
-
-    # boto operations return this when they are able to make the request,
-    # but it fails
-    if isinstance(e, ClientError):
-
-        # Look at a few common response codes.
-        # We can't try to capture them all. There's no comprehensive list
-        # online.
-        code = (e.response or {}).get('Code')
-        if code in ['ResourceNotFoundException']:
-            return FuseOSError(ENOENT), logging.INFO
-        if code in ['AuthFailure', 'UnauthorizedOperation']:
-            return FuseOSError(EPERM), logging.WARNING
-        if code in ['Blocked']:
-            return FuseOSError(EPERM), logging.WARNING
-
-        # There are zillions of response codes.
-        # Use the HTTP status to figure out a little more.
-        # Note this is not sufficient - trying to scan a non-existent
-        # dynamo table results in ResourceNotFoundException but with 400!
-        status = (e.response or {}).get('HTTPStatusCode')
-        if status in [401, 402, 403]:
-            return FuseOSError(EPERM), logging.WARNING
-        if status in [404, 410]:
-            return FuseOSError(ENOENT), logging.INFO
-        if status in [409]:
-            return FuseOSError(ESTALE), logging.WARNING
-        if status >= 500:
-            return FuseOSError(EIO), logging.WARNING
-
-        # This is bad, but we don't really need to crash.
-        # We know that our call made it through but failed. I think it's
-        # worth returning a generic EIO and then looking in the logs to debug.
-        log.error('Unexpected boto error %s', str(e.response), exc_info=True)
-        return FuseOSError(EIO), logging.ERROR
-
-    return None, None
