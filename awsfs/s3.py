@@ -60,6 +60,5 @@ def get_dirents(region, bucket, prefix=''):
 
 
 def get_item_file(region, bucket, key):
-    # TODO why did I get "Bad address" when I had an ex here before, instead of a crash?
     return (boto3.resource('s3', region_name=region).
             Object(bucket, key).get()['Body'].read())

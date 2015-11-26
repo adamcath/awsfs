@@ -34,7 +34,14 @@ class AwsOps(Operations):
         except BaseException as e:
             # For convenience, we let the lower-level code allow some
             # exceptions to bubble out. Process those now.
-            (fuse_ex, level) = to_fuse_ex(e)
+            try:
+                (fuse_ex, level) = to_fuse_ex(e)
+            except:
+                log.fatal('<- %s failed to parse error. '
+                          'Unmounting FS and crashing!',
+                          op, exc_info=True)
+                self.crash()
+
             if fuse_ex:
                 log.log(level,
                         '<- %s %d (%s): %s: %s',
@@ -190,7 +197,7 @@ def to_fuse_ex(e):
         # Look at a few common response codes.
         # We can't try to capture them all. There's no comprehensive list
         # online.
-        code = e.response['Code']
+        code = (e.response or {}).get('Code')
         if code in ['ResourceNotFoundException']:
             return FuseOSError(ENOENT), logging.INFO
         if code in ['AuthFailure', 'UnauthorizedOperation']:
@@ -202,7 +209,7 @@ def to_fuse_ex(e):
         # Use the HTTP status to figure out a little more.
         # Note this is not sufficient - trying to scan a non-existent
         # dynamo table results in ResourceNotFoundException but with 400!
-        status = e.response['HTTPStatusCode']
+        status = (e.response or {}).get('HTTPStatusCode')
         if status in [401, 402, 403]:
             return FuseOSError(EPERM), logging.WARNING
         if status in [404, 410]:
