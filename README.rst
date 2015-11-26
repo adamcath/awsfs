@@ -9,8 +9,8 @@ This package provides a filesystem-like interface to Amazon Web Services.
 It is in early development and only provides access to a few services
 (currently ec2, dynamodb, and elb).
 
-.. |Build Status| image:: http://img.shields.io/travis/boto/boto3/develop.svg?style=flat
-    :target: https://travis-ci.org/boto/boto3
+.. |Build Status| image:: https://travis-ci.org/adamcath/awsfs.svg?branch=master
+    :target: https://travis-ci.org/adamcath/awsfs
     :alt: Build Status
 
 ------------
