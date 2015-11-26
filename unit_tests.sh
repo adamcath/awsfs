@@ -13,6 +13,12 @@ echo '#################################################'
 echo '# Coverage report'
 echo '#################################################'
 
-if ! coverage report --omit="$HOME/Library/**,/Library/**" --fail-under=40; then
+coverage_omissions="$HOME/Library/**,/Library/**"
+
+coverage annotate --omit="$coverage_omissions" -d build/coverage
+
+if ! coverage report --omit="$coverage_omissions" --fail-under=40; then
     echo 'FAILED: Coverage too low' 2>&1
+    exit 2
 fi
+echo 'Coverage OK. Annotated src in build/coverage'
