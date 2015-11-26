@@ -1,4 +1,5 @@
 .coverage
+.DS_Store
 .idea
 *.egg-info
 *.pyc

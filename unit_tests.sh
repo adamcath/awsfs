@@ -6,19 +6,17 @@ echo '#################################################'
 echo '# Running unit tests'
 echo '#################################################'
 
-coverage run --branch -m unittest discover tests/unit/ -v
+coverage run --source=awsfs,tests --branch -m unittest discover tests/unit/ -v
 
 echo
 echo '#################################################'
 echo '# Coverage report'
 echo '#################################################'
 
-coverage_omissions="$HOME/Library/**,/Library/**"
+coverage html -d build/coverage
 
-coverage annotate --omit="$coverage_omissions" -d build/coverage
-
-if ! coverage report --omit="$coverage_omissions" --fail-under=40; then
+if ! coverage report --fail-under=40; then
     echo 'FAILED: Coverage too low' 2>&1
     exit 2
 fi
-echo 'Coverage OK. Annotated src in build/coverage'
+echo 'Coverage OK. HTML report in build/coverage/index.html'
