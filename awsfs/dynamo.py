@@ -41,9 +41,9 @@ def get_tables(region):
 def get_keys(region, table):
     key_col = get_key_col(region, table)
     result = []
-    for page in get_client(region).get_paginator('scan').paginate(
-            TableName=table,
-            AttributesToGet=[key_col]):
+    for page in (get_client(region).
+                 get_paginator('scan').
+                 paginate(TableName=table, AttributesToGet=[key_col])):
         for item in page['Items']:
             key_attr = item[key_col]
             result.append((simplify_dynamo_attr(key_attr), key_col, key_attr))
