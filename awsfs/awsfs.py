@@ -188,7 +188,7 @@ class AwsOps(Operations):
         raise FuseOSError(EPERM)
 
     def statfs(self, path):
-        return dict(f_bsize=512, f_blocks=4096, f_bavail=2048)
+        return dict(f_bsize=0, f_blocks=0, f_bavail=0)
 
     def symlink(self, target, source):
         raise FuseOSError(EPERM)
