@@ -10,6 +10,7 @@ from fuse import FuseOSError, Operations
 from dynamo import dynamo_root
 from ec2 import ec2_root
 from elb import elb_root
+from s3 import s3_root
 from vfs import *
 
 
@@ -147,7 +148,8 @@ class RootDir(VDir):
         self.children = [
             ("dynamo", dynamo_root()),
             ("ec2", ec2_root()),
-            ("elb", elb_root())
+            ("elb", elb_root()),
+            ("s3", s3_root())
         ]
 
     def get_children(self):

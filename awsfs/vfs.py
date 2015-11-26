@@ -106,6 +106,7 @@ class SFile(VFile):
     def __init__(self, contents):
         VFile.__init__(self)
         self.contents = contents
+        self.size = len(self.contents)
 
     def read(self):
         return self.contents
@@ -114,16 +115,23 @@ class SFile(VFile):
         pass
 
     def get_size(self):
-        return len(self.contents)
+        return self.size
 
 
 class LFile(VFile):
     """
     A file with lazy-loaded contents.
+
+    :param size Of the file, in bytes.
+                If 'auto', will be computed by calling read(). This is
+                inadvisable since size is reported by stat(2), which is
+                generally assumed to be fast (e.g. `ls` stats every file).
     """
-    def __init__(self, get_contents_func):
+    def __init__(self, get_contents_func, size='auto'):
         VFile.__init__(self)
         self.get_contents_func = get_contents_func
+        self.size = size
+        # TODO what if the contents change? We'll cache size forever
 
     def read(self):
         return self.get_contents_func()
@@ -132,5 +140,4 @@ class LFile(VFile):
         pass
 
     def get_size(self):
-        # TODO This is crappy for perf. Does it really need to be accurate?
-        return len(self.read())
+        return len(self.read()) if self.size == 'auto' else self.size
