@@ -82,8 +82,7 @@ un-done stuff here than in a lot of separate issues.
 - Caching: Currently most things are just on a 60 second cache, period.
   Can we do better (e.g. if you modify something through awsfs, you should
   probably see those writes immediately).
-- Logging: do more. Is syslog really appropriate? Should we expose a virtual
-  log file inside the filesystem?
+- Logging: do more. Is syslog really appropriate?
 - Writes: currently it's read only. There are some cases where writing directly
   would be natural (e.g. dynamo, s3), and other cases where it might make
   more sense to expose "programs" (cd ec2/<instance-id>; terminate).
