@@ -92,7 +92,35 @@ step 'cd ..'
 
 step 'cd ../security-groups'
 ls_and_step_into_first_dir
-step 'cd ..'
+step 'cd ../../../../../'
+
+echo
+echo "#####################################################"
+echo "# IAM"
+echo "#####################################################"
+echo
+
+step 'cd iam'
+step 'ls -l'
+step 'cd users'
+ls_and_step_into_first_dir
+step 'ls'
+step 'cat info'
+step 'cd ../../'
+step 'cd groups'
+ls_and_step_into_first_dir
+step 'ls'
+step 'cat info'
+step 'cd ../../'
+step 'cd roles'
+ls_and_step_into_first_dir
+step 'ls'
+step 'cat info'
+step 'cd ../../'
+step 'cd policies'
+ls_and_step_into_first_dir
+ls_and_cat_first_file
+step 'cd ../../../'
 
 echo
 echo "#####################################################"

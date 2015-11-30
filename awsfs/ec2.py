@@ -12,9 +12,16 @@ def ec2_root():
                     ('info', SFile(to_json(instance).encode())),
                     ('status', LFile(lambda _instance=instance:
                                      get_instance_status(_region, _instance['InstanceId']))),
+                    ('image', VLink('../../images/' + instance['ImageId'])),
                     ('security-groups', SDir(get_instance_security_group_dirents(instance)))
                 ]))
                 for instance in get_instances(_region)
+            ])),
+            ('images', CLDir(lambda _region=region: [
+                (image['ImageId'], SDir([
+                    ('info', SFile(to_json(image).encode()))
+                ]))
+                for image in get_images(region)
             ])),
             ('security-groups', CLDir(lambda _region=region: ([
                 (group['GroupId'], SDir([
@@ -23,7 +30,7 @@ def ec2_root():
                 for group in get_security_groups(_region)
             ] + [
                 ('by-name',
-                 SDir([
+                 CLDir(lambda _region=region: [
                      (group['GroupName'], VLink('../' + group['GroupId']))
                      for group in get_security_groups(_region) if 'GroupName' in group
                  ]))
@@ -71,6 +78,10 @@ def get_instance_security_group_dirents(instance):
          VLink('../../../security-groups/' + group['GroupId']))
         for group in instance['SecurityGroups']
     ]
+
+
+def get_images(region):
+    return get_client(region).describe_images()['Images']
 
 
 def get_security_groups(region):

@@ -7,6 +7,7 @@ from botocore.exceptions import NoCredentialsError, \
     PartialCredentialsError, ClientError
 from fuse import FuseOSError, Operations
 
+from iam import iam_root
 from dynamo import dynamo_root
 from ec2 import ec2_root
 from elb import elb_root
@@ -214,6 +215,7 @@ class RootDir(VDir):
     def __init__(self):
         VDir.__init__(self)
         self.children = [
+            ("iam", iam_root()),
             ("dynamo", dynamo_root()),
             ("ec2", ec2_root()),
             ("elb", elb_root()),
