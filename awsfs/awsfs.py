@@ -112,7 +112,11 @@ class AwsOps(Operations):
 
     # Unit tests can replace this
     def crash(self):
-        os.abort()
+        try:
+            for handler in logging.getLogger().handlers:
+                handler.flush()
+        finally:
+            os.abort()
 
     #################################################
     # The actual operations
