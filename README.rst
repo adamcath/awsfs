@@ -7,7 +7,7 @@ awsfs
 This package provides a filesystem-like interface to Amazon Web Services.
 
 It is in early development and only provides read access to a few services
-(currently ec2, dynamodb, elb, and s3).
+(currently iam, ec2, elb, dynamodb, and s3).
 
 .. |Build Status| image:: https://travis-ci.org/adamcath/awsfs.svg?branch=master
     :target: https://travis-ci.org/adamcath/awsfs
