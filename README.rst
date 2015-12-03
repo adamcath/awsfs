@@ -45,7 +45,7 @@ Let's play around::
 
     $ cd ~/aws
     $ ls
-    dynamo  ec2  elb
+    dynamo ec2    elb    iam    s3
     $ cd dynamo/us-west-2
     $ ls
     some_table
