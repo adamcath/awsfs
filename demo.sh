@@ -18,6 +18,18 @@ function step {
     eval "$1"
 }
 
+function ls_and_step_into_first_dir {
+    step 'ls -al | head -n 10 || True'  # TODO why?
+    first="$(ls | head -n 1 || True)"
+    step "cd $first"
+}
+
+function ls_and_cat_first_file {
+    step 'ls | head -n 10 || True'
+    first="$(ls | head -n 1 || True)"
+    step "cat \"$first\""
+}
+
 echo
 echo "#####################################################"
 echo "# Mounting awsfs"
@@ -45,12 +57,8 @@ echo
 step 'cd dynamo'
 step 'ls'
 step 'cd us-west-2'
-step 'ls | head -n 10 || True'  # TODO why?
-first="$(ls | head -n 1 || True)"
-step "cd $first"
-step 'ls | head -n 10 || True'
-first="$(ls | head -n 1 || True)"
-step "cat $first"
+ls_and_step_into_first_dir
+ls_and_cat_first_file
 step 'cd ../../../'
 
 echo
@@ -59,18 +67,14 @@ echo "# EC2"
 echo "#####################################################"
 echo
 step 'cd ec2/us-west-2/instances'
-step 'ls | head -n 10 || True'
-first="$(ls | head -n 1 || True)"
-step "cd $first"
+ls_and_step_into_first_dir
 step 'cat info | head -n 10'
 
-step 'cd ../../security-groups'
-step 'ls | head -n 10 || True'
-first="$(ls -r | head -n 1 || True)"
-step "cd $first"
+step 'cd ../../security-groups/by-name'
+ls_and_step_into_first_dir
 step 'cat info | head -n 10'
 
-step 'cd ../../../../'
+step 'cd ../../../../../'
 
 echo
 echo "#####################################################"
@@ -78,17 +82,17 @@ echo "# ELB"
 echo "#####################################################"
 echo
 step 'cd elb/us-west-2'
-step 'ls | head -n 10 || True'
-first="$(ls | head -n 1 || True)"
-step "cd $first"
+ls_and_step_into_first_dir
 step 'cat info | head -n 10'
 step 'cat status | head -n 10'
 
 step 'cd instances'
-step 'ls -al | head -n 10 || True'
+ls_and_step_into_first_dir
+step 'cd ..'
 
 step 'cd ../security-groups'
-step 'ls -al | head -n 10 || True'
+ls_and_step_into_first_dir
+step 'cd ..'
 
 echo
 echo "#####################################################"
